@@ -4,6 +4,7 @@ import (
 	"os"
 
 	my_jwt "github.com/SpeedCrash100/go-login-service/internal/jwt"
+	"github.com/SpeedCrash100/go-login-service/internal/routes"
 	"github.com/SpeedCrash100/go-login-service/pkg/consts"
 	jwt "github.com/appleboy/gin-jwt/v2"
 
@@ -35,6 +36,14 @@ func initConfig() {
 
 func initRoutes(r *gin.Engine, jwtMiddleware *jwt.GinJWTMiddleware) {
 	r.POST("/login", jwtMiddleware.LoginHandler)
+
+	auth := r.Group("/auth")
+	{
+		auth.Use(jwtMiddleware.MiddlewareFunc())
+		auth.GET("/refresh_token", jwtMiddleware.RefreshHandler)
+		auth.GET("/profile", routes.Profile)
+
+	}
 }
 
 func main() {

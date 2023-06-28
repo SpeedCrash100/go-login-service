@@ -48,6 +48,7 @@ func GetJWTMiddleware() (*jwt.GinJWTMiddleware, error) {
 		PayloadFunc:     payloadFunc,
 		IdentityHandler: identityHandler,
 		Authenticator:   authenticator,
+		Authorizator:    authorization,
 		Unauthorized:    unauthorized,
 	})
 
@@ -60,7 +61,7 @@ func GetJWTMiddleware() (*jwt.GinJWTMiddleware, error) {
 }
 
 func payloadFunc(data interface{}) jwt.MapClaims {
-	if v, ok := data.(*m.UserLoginInfo); ok {
+	if v, ok := data.(*m.UserClaims); ok {
 		return jwt.MapClaims{
 			IDENTITY_KEY: v.Username,
 		}
