@@ -1,12 +1,13 @@
 package main
 
 import (
-	"net/http"
 	"os"
 
+	my_jwt "github.com/SpeedCrash100/go-login-service/internal/jwt"
 	"github.com/SpeedCrash100/go-login-service/pkg/consts"
-	"github.com/gin-contrib/logger"
+	jwt "github.com/appleboy/gin-jwt/v2"
 
+	"github.com/gin-contrib/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -32,10 +33,8 @@ func initConfig() {
 
 }
 
-func initRoutes(r *gin.Engine) {
-	r.GET("/ping", func(c *gin.Context) {
-		c.String(http.StatusOK, "pong")
-	})
+func initRoutes(r *gin.Engine, jwtMiddleware *jwt.GinJWTMiddleware) {
+	r.POST("/login", jwtMiddleware.LoginHandler)
 }
 
 func main() {
@@ -56,7 +55,13 @@ func main() {
 	e.Use(logger.SetLogger())
 	e.Use(gin.Recovery())
 
-	initRoutes(e)
+	// Prepare JWT
+	jwtMiddleware, err := my_jwt.GetJWTMiddleware()
+	if err != nil {
+		log.Fatal().Err(err).Msg("jwt init")
+	}
+
+	initRoutes(e, jwtMiddleware)
 
 	// Start
 	address := viper.GetString(consts.CONFIG_IP) + ":" + viper.GetString(consts.CONFIG_PORT)
