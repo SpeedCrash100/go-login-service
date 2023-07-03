@@ -1,0 +1,5 @@
+# Local DB files
+*.db
+
+# VScode tmp files
+__*

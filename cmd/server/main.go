@@ -1,13 +1,14 @@
 package main
 
 import (
-	"os"
-
+	_ "github.com/SpeedCrash100/go-login-service/internal/config"
+	"github.com/SpeedCrash100/go-login-service/internal/database"
+	"github.com/SpeedCrash100/go-login-service/internal/database/query"
 	my_jwt "github.com/SpeedCrash100/go-login-service/internal/jwt"
 	"github.com/SpeedCrash100/go-login-service/internal/routes"
 	"github.com/SpeedCrash100/go-login-service/pkg/consts"
-	jwt "github.com/appleboy/gin-jwt/v2"
 
+	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-contrib/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
@@ -15,27 +16,9 @@ import (
 	"github.com/spf13/viper"
 )
 
-func initConfig() {
-	viper.SetDefault(consts.CONFIG_PORT, 8080)
-	viper.SetDefault(consts.CONFIG_IP, "0.0.0.0")
-	viper.SetDefault(consts.CONFIG_IS_DEBUG, true)
-
-	viper.SetConfigName("config")
-	viper.AddConfigPath(".")
-
-	err := viper.ReadInConfig()
-	if err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			log.Warn().Err(err).Msg("failed to find config file. using default value")
-		} else {
-			log.Fatal().Err(err).Msg("failed to open config file")
-		}
-	}
-
-}
-
 func initRoutes(r *gin.Engine, jwtMiddleware *jwt.GinJWTMiddleware) {
 	r.POST("/login", jwtMiddleware.LoginHandler)
+	r.POST("/register", routes.Register)
 
 	auth := r.Group("/auth")
 	{
@@ -47,12 +30,6 @@ func initRoutes(r *gin.Engine, jwtMiddleware *jwt.GinJWTMiddleware) {
 }
 
 func main() {
-	// Start-up log configuration
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
-
-	// Configs
-	initConfig()
 
 	// Set Logging level
 	if viper.GetBool(consts.CONFIG_IS_DEBUG) {
@@ -69,6 +46,11 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("jwt init")
 	}
+
+	// Prepare DB
+	db := database.NewUserDB()
+	database.Migrate(db)
+	query.SetDefault(db)
 
 	initRoutes(e, jwtMiddleware)
 
