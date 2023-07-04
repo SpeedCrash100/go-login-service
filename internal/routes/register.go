@@ -4,24 +4,34 @@ import (
 	"net/http"
 
 	"github.com/SpeedCrash100/go-login-service/internal/database/query"
+	"github.com/SpeedCrash100/go-login-service/internal/password"
 	"github.com/SpeedCrash100/go-login-service/pkg/models"
 	"github.com/gin-gonic/gin"
 	"github.com/mattn/go-sqlite3"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
 func Register(c *gin.Context) {
-	var userInfo models.UserRegisterInfo
-	if err := c.ShouldBind(&userInfo); err != nil {
+	var user_info models.UserRegisterInfo
+	if err := c.ShouldBind(&user_info); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": err,
 		})
 		return
 	}
 
+	password_hash, err := password.HashPassword(user_info.Password)
+	if err != nil {
+		log.Error().Err(err).Msg("bcrypt failure")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "failed to generate password hash",
+		})
+	}
+
 	user := models.User{
-		Username: userInfo.Username,
-		Password: userInfo.Password,
+		Username: user_info.Username,
+		Password: password_hash,
 	}
 
 	if err := query.User.Create(&user); err != nil {

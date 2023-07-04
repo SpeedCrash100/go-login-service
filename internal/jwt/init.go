@@ -2,14 +2,18 @@ package jwt
 
 import (
 	"crypto/rand"
+	"errors"
 	"time"
 
+	"github.com/SpeedCrash100/go-login-service/internal/database/query"
+	"github.com/SpeedCrash100/go-login-service/internal/password"
 	"github.com/SpeedCrash100/go-login-service/pkg/consts"
 	m "github.com/SpeedCrash100/go-login-service/pkg/models"
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
+	"gorm.io/gorm"
 )
 
 const JWT_SECRET_DEFAULT_SIZE int = 512
@@ -82,7 +86,22 @@ func authenticator(c *gin.Context) (interface{}, error) {
 		return "", jwt.ErrMissingLoginValues
 	}
 
-	// TODO! Check username/password in DB
+	user, err := query.User.GetByUsername(login.Username)
+	if err != nil {
+		// If username not found
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", jwt.ErrFailedAuthentication
+		}
+		// otherwise
+		log.Error().Err(err).Msg("failed to get user by username")
+		return "", err
+	}
+
+	password_hash := user.Password
+
+	if !password.CheckPassword(login.Password, password_hash) {
+		return "", jwt.ErrFailedAuthentication
+	}
 
 	return &m.UserClaims{Username: login.Username}, nil
 }
